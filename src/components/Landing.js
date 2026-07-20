@@ -5,11 +5,9 @@ import ValidUserContext from "../authCheck";
 import signoutIcon from "../assets/fa-logout.svg";
 import userIcon from "../assets/fa-user.svg";
 import menuIcon from "../assets/fa-menu.svg";
-import pdfIcon from "../assets/akar-icons_pdf.svg";
-import pngIcon from "../assets/akar-icons_png.svg";
-import pwrpIcon from "../assets/akar-icons_pwrp.svg";
-import excelIcon from "../assets/akar-icons_excel.svg";
-import refreshIcon from "../assets/fa-refresh.svg";
+import pdfIcon from "../assets/icon-pdf.svg";
+import imageIcon from "../assets/icon-image.svg";
+import refreshIcon from "../assets/icon-refresh.svg";
 
 import brandLogo from "../assets/cd-logo.svg";
 import Dashboard from "./Dashboard";
@@ -96,39 +94,49 @@ const Landing = ({ idleCountParam }) => {
     if (isMobileDevice()) setNavOpen(false);
   };
 
-  const vizNode = () =>
-    dashboardRef.current &&
-    dashboardRef.current.firstChild &&
-    dashboardRef.current.firstChild.firstChild &&
-    dashboardRef.current.firstChild.firstChild.childNodes[1];
+  // Tableau Embedding API v3 custom element inside Dashboard
+  const getViz = () => dashboardRef.current?.querySelector("tableau-viz");
 
-  const handleExportPDFClick = () => vizNode() && vizNode().displayDialogAsync("export-pdf");
-  const handleExportPNGClick = () => vizNode() && vizNode().exportImageAsync();
-  const handleExportPWRPClick = () => vizNode() && vizNode().displayDialogAsync("export-powerpoint");
-  const handleCrossTabClick = () => vizNode() && vizNode().displayDialogAsync("export-cross-tab");
+  const handleExportPDFClick = async () => {
+    const viz = getViz();
+    if (!viz) return;
+    try {
+      await viz.displayDialogAsync("export-pdf");
+    } catch (err) {
+      console.error("PDF export failed", err);
+    }
+  };
+
+  const handleExportImageClick = async () => {
+    const viz = getViz();
+    if (!viz) return;
+    try {
+      await viz.exportImageAsync();
+    } catch (err) {
+      console.error("Image export failed", err);
+    }
+  };
 
   const handleTriggerRefresh = () => {
-    const node = vizNode();
-    if (!node) return;
+    const viz = getViz();
+    if (!viz) return;
     setRefreshSpin(true);
-    node
+    viz
       .refreshDataAsync()
       .then(() => setRefreshSpin(false))
       .catch(() => setRefreshSpin(false));
   };
 
   const handleBackgroundRefresh = () => {
-    const node = vizNode();
-    if (node) node.refreshDataAsync().catch(() => {});
+    const viz = getViz();
+    if (viz) viz.refreshDataAsync().catch(() => {});
   };
 
   const handleLogout = () => validUserContext.logoutUser();
 
   const exportButtons = [
     { icon: pdfIcon, alt: "Export PDF", onClick: handleExportPDFClick },
-    { icon: pngIcon, alt: "Export PNG", onClick: handleExportPNGClick },
-    { icon: pwrpIcon, alt: "Export PowerPoint", onClick: handleExportPWRPClick },
-    { icon: excelIcon, alt: "Export Crosstab", onClick: handleCrossTabClick },
+    { icon: imageIcon, alt: "Export Image", onClick: handleExportImageClick },
   ];
 
   return (

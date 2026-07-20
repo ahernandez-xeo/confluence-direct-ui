@@ -272,14 +272,19 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  color: $brand-navy;
 
   img {
-    height: 20px;
-    width: 20px;
+    height: 18px;
+    width: 18px;
   }
 
   &:hover {
-    background-color: $brand-bg;
+    background-color: rgba($brand-navy, 0.08);
+  }
+
+  &:active {
+    background-color: rgba($brand-navy, 0.14);
   }
 }
 
