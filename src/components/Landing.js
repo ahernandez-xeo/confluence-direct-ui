@@ -1,5 +1,5 @@
 import classes from "./Landing.module.scss";
-import { useEffect, useState, useContext, useMemo } from "react";
+import { useEffect, useState, useContext, useMemo, useRef } from "react";
 import ValidUserContext from "../authCheck";
 
 import signoutIcon from "../assets/fa-logout.svg";
@@ -11,7 +11,8 @@ import refreshIcon from "../assets/icon-refresh.svg";
 
 import brandLogo from "../assets/cd-logo.svg";
 import Dashboard from "./Dashboard";
-import { useRef } from "react";
+
+const VIEW_PILL_LIMIT = 10;
 
 const isMobileDevice = () => /Mobi|Android/i.test(navigator.userAgent);
 
@@ -24,28 +25,35 @@ const formatViewLabel = (url) => {
     .trim();
 };
 
-const buildViews = (navEntries, clientName) =>
+const buildWorkbookList = (navEntries, clientName) =>
   navEntries
-    .filter(([, wb]) => wb.client === clientName)
-    .flatMap(([, wb]) =>
-      (wb.dashboards || []).map((url, i) => ({
-        url,
-        id: (wb.dashboard_ids || [])[i],
-        label: formatViewLabel(url),
-        workbook: wb.name,
-      }))
-    );
+    .filter(([, wb]) => !clientName || wb.client === clientName)
+    .map(([id, wb]) => ({
+      id,
+      name: wb.name,
+      client: wb.client,
+      dashboards: wb.dashboards || [],
+      dashboard_ids: wb.dashboard_ids || [],
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+const buildViews = (workbook) => {
+  if (!workbook) return [];
+  return (workbook.dashboards || []).map((url, i) => ({
+    url,
+    id: (workbook.dashboard_ids || [])[i],
+    label: formatViewLabel(url),
+    workbook: workbook.name,
+  }));
+};
 
 const Landing = ({ idleCountParam }) => {
   const validUserContext = useContext(ValidUserContext);
   const dashboardRef = useRef(null);
+  const viewPickerRef = useRef(null);
 
   const navEntries = useMemo(
     () => Object.entries(JSON.parse(localStorage.getItem("navigation")) || {}),
-    []
-  );
-  const clientList = useMemo(
-    () => JSON.parse(localStorage.getItem("client_list")) || [],
     []
   );
   const group = JSON.parse(localStorage.getItem("group")) ?? "default";
@@ -55,21 +63,39 @@ const Landing = ({ idleCountParam }) => {
   const role = JSON.parse(localStorage.getItem("role")) || "";
   const roleLabel = role.includes("Administrator") ? "Administrator" : role;
 
-  const initialClient = isAdmin
-    ? clientList[0] || (navEntries[0] && navEntries[0][1].client) || "default"
+  // Scope workbooks to the user's folder/client label (group name for non-admins,
+  // "Admin Insights" / first nav client for admins).
+  const scopeClient = isAdmin
+    ? (navEntries[0] && navEntries[0][1].client) || null
     : group;
 
-  const [selectedClient, setSelectedClient] = useState(initialClient);
-  const [views, setViews] = useState(() => buildViews(navEntries, initialClient));
+  const workbooks = useMemo(
+    () => buildWorkbookList(navEntries, scopeClient),
+    [navEntries, scopeClient]
+  );
+
+  const initialWorkbookId = workbooks[0]?.id || "";
+  const [selectedWorkbookId, setSelectedWorkbookId] = useState(initialWorkbookId);
+
+  const selectedWorkbook = useMemo(
+    () => workbooks.find((wb) => wb.id === selectedWorkbookId) || workbooks[0] || null,
+    [workbooks, selectedWorkbookId]
+  );
+
+  const [views, setViews] = useState(() => buildViews(workbooks[0]));
   const [activeIndex, setActiveIndex] = useState(0);
   const [activeURL, setActiveURL] = useState(() => {
-    const v = buildViews(navEntries, initialClient);
+    const v = buildViews(workbooks[0]);
     return v.length ? v[0].url : "";
   });
   const [refreshSpin, setRefreshSpin] = useState(false);
   const [navOpen, setNavOpen] = useState(!isMobileDevice());
   const [profileOpen, setProfileOpen] = useState(false);
+  const [viewMenuOpen, setViewMenuOpen] = useState(false);
   const [idleCount, setIdleCount] = useState(idleCountParam);
+
+  const useViewPicker = views.length > VIEW_PILL_LIMIT;
+  const activeView = views[activeIndex] || null;
 
   useEffect(() => {
     if (idleCountParam !== idleCount) {
@@ -79,18 +105,53 @@ const Landing = ({ idleCountParam }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idleCountParam]);
 
-  const handleClientChange = (client) => {
-    const nextViews = buildViews(navEntries, client);
-    setSelectedClient(client);
+  // Close view picker on outside click or Escape
+  useEffect(() => {
+    if (!viewMenuOpen) return undefined;
+
+    const onPointerDown = (e) => {
+      if (viewPickerRef.current && !viewPickerRef.current.contains(e.target)) {
+        setViewMenuOpen(false);
+      }
+    };
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") setViewMenuOpen(false);
+    };
+
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [viewMenuOpen]);
+
+  // Keep the currently selected view visible in the scrollable list
+  useEffect(() => {
+    if (!viewMenuOpen) return;
+    const active = viewPickerRef.current?.querySelector('[aria-selected="true"]');
+    if (active) active.scrollIntoView({ block: "nearest" });
+  }, [viewMenuOpen, activeIndex]);
+
+  const applyWorkbook = (workbook) => {
+    const nextViews = buildViews(workbook);
+    setSelectedWorkbookId(workbook?.id || "");
     setViews(nextViews);
     setActiveIndex(0);
     setActiveURL(nextViews.length ? nextViews[0].url : "");
+    setViewMenuOpen(false);
+  };
+
+  const handleWorkbookChange = (workbookId) => {
+    const workbook = workbooks.find((wb) => wb.id === workbookId);
+    applyWorkbook(workbook);
   };
 
   const handleViewClick = (index) => {
     validUserContext.localAuthCheck(false);
     setActiveIndex(index);
     setActiveURL(views[index].url);
+    setViewMenuOpen(false);
     if (isMobileDevice()) setNavOpen(false);
   };
 
@@ -154,15 +215,16 @@ const Landing = ({ idleCountParam }) => {
         </div>
 
         <div className={classes.headerRight}>
-          {isAdmin && clientList.length > 0 && (
+          {workbooks.length > 0 && (
             <div className={classes.clientSelect}>
               <select
-                value={selectedClient}
-                onChange={(e) => handleClientChange(e.target.value)}
+                value={selectedWorkbook?.id || ""}
+                onChange={(e) => handleWorkbookChange(e.target.value)}
+                aria-label="Select workbook"
               >
-                {clientList.map((client, i) => (
-                  <option key={i} value={client}>
-                    {client}
+                {workbooks.map((wb) => (
+                  <option key={wb.id} value={wb.id}>
+                    {wb.name}
                   </option>
                 ))}
               </select>
@@ -195,22 +257,62 @@ const Landing = ({ idleCountParam }) => {
       </header>
 
       <nav className={`${classes.subnav} ${navOpen ? "" : classes.subnavClosed}`}>
-        <div className={classes.viewNav}>
+        <div
+          className={`${classes.viewNav} ${useViewPicker ? classes.viewNavPicker : ""}`}
+        >
           {views.length === 0 && (
             <span className={classes.noViews}>No dashboards available</span>
           )}
-          {views.map((view, index) => (
-            <button
-              key={view.id || index}
-              className={`${classes.viewPill} ${
-                activeIndex === index ? classes.viewPillActive : ""
-              }`}
-              onClick={() => handleViewClick(index)}
-              title={view.label}
-            >
-              {view.label}
-            </button>
-          ))}
+
+          {!useViewPicker &&
+            views.map((view, index) => (
+              <button
+                key={view.id || index}
+                className={`${classes.viewPill} ${
+                  activeIndex === index ? classes.viewPillActive : ""
+                }`}
+                onClick={() => handleViewClick(index)}
+                title={view.label}
+              >
+                {view.label}
+              </button>
+            ))}
+
+          {useViewPicker && activeView && (
+            <div className={classes.viewPicker} ref={viewPickerRef}>
+              <button
+                type="button"
+                className={classes.viewPickerButton}
+                onClick={() => setViewMenuOpen((o) => !o)}
+                aria-expanded={viewMenuOpen}
+                aria-haspopup="listbox"
+                title={activeView.label}
+              >
+                <span className={classes.viewPickerLabel}>{activeView.label}</span>
+                <span className={classes.chevron}>▾</span>
+              </button>
+
+              {viewMenuOpen && (
+                <div className={classes.viewPickerMenu} role="listbox">
+                  {views.map((view, index) => (
+                    <button
+                      key={view.id || index}
+                      type="button"
+                      role="option"
+                      aria-selected={index === activeIndex}
+                      className={`${classes.viewPickerItem} ${
+                        index === activeIndex ? classes.viewPickerItemActive : ""
+                      }`}
+                      onClick={() => handleViewClick(index)}
+                      title={view.label}
+                    >
+                      {view.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className={classes.toolbarActions}>

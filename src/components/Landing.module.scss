@@ -60,6 +60,7 @@
 
 .clientSelect {
   position: relative;
+  max-width: min(360px, 45vw);
 
   select {
     appearance: none;
@@ -74,6 +75,10 @@
     font-family: inherit;
     cursor: pointer;
     outline: none;
+    width: 100%;
+    max-width: 100%;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   &::after {
@@ -198,6 +203,9 @@
   background-color: $brand-card;
   border-bottom: 1px solid $brand-border;
   flex: 0 0 auto;
+  position: relative;
+  z-index: 30;
+  overflow: visible;
 }
 
 .subnavClosed {
@@ -217,6 +225,11 @@
   &::-webkit-scrollbar {
     display: none;
   }
+}
+
+/* Allow the view-picker dropdown to escape horizontal scroll clipping */
+.viewNavPicker {
+  overflow: visible;
 }
 
 .noViews {
@@ -251,6 +264,96 @@
   &:hover {
     background-color: $brand-navy;
     color: #ffffff;
+  }
+}
+
+/* Compact view picker (when views.length > VIEW_PILL_LIMIT) */
+.viewPicker {
+  position: relative;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: min(420px, 70vw);
+}
+
+.viewPickerButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  border: 1px solid $brand-border;
+  background-color: $brand-bg;
+  color: $brand-navy;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  outline: none;
+
+  .chevron {
+    color: $brand-slate;
+    flex: 0 0 auto;
+  }
+
+  &:hover {
+    background-color: #e8ecf0;
+    border-color: rgba($brand-navy, 0.25);
+  }
+}
+
+.viewPickerLabel {
+  color: $brand-navy;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.viewPickerMenu {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 8px);
+  z-index: 50;
+  width: min(360px, 85vw);
+  max-height: min(360px, 60vh);
+  overflow-y: auto;
+  background-color: $brand-card;
+  border: 1px solid $brand-border;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(11, 44, 74, 0.14);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.viewPickerItem {
+  border: none;
+  background: transparent;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: $brand-navy;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 0 0 auto;
+
+  &:hover {
+    background-color: $brand-bg;
+  }
+}
+
+.viewPickerItemActive {
+  background-color: rgba($brand-navy, 0.1);
+  font-weight: 600;
+
+  &:hover {
+    background-color: rgba($brand-navy, 0.14);
   }
 }
 
