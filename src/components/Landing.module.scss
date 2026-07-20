@@ -1,0 +1,422 @@
+@import "../mixins";
+@import "../variables";
+
+/* ---------- Modern shell (matches CD Portal look & feel) ---------- */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  background-color: $brand-bg;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+  padding: 0 24px;
+  background-color: $brand-card;
+  border-bottom: 1px solid $brand-border;
+  flex: 0 0 auto;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.brandLogo {
+  height: 26px;
+  width: auto;
+}
+
+.menuToggle {
+  display: none;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+
+  img {
+    height: 20px;
+    width: 20px;
+  }
+
+  &:hover {
+    background-color: $brand-bg;
+  }
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.clientSelect {
+  position: relative;
+
+  select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-color: $brand-bg;
+    color: $brand-navy;
+    border: 1px solid $brand-border;
+    border-radius: 999px;
+    padding: 8px 34px 8px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    outline: none;
+  }
+
+  &::after {
+    content: "▾";
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: $brand-slate;
+    font-size: 12px;
+    pointer-events: none;
+  }
+}
+
+.profile {
+  position: relative;
+}
+
+.profileButton {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 10px;
+
+  &:hover {
+    background-color: $brand-bg;
+  }
+}
+
+.avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background-color: $brand-bg;
+  border: 1px solid $brand-border;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+
+  img {
+    width: 18px;
+    height: 18px;
+    opacity: 0.6;
+  }
+}
+
+.profileText {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.2;
+}
+
+.profileName {
+  font-size: 14px;
+  font-weight: 600;
+  color: $brand-orange;
+}
+
+.profileRole {
+  font-size: 11px;
+  font-weight: 500;
+  color: $brand-slate;
+}
+
+.chevron {
+  color: $brand-slate;
+  font-size: 12px;
+}
+
+.profileMenu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  background-color: $brand-card;
+  border: 1px solid $brand-border;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(11, 44, 74, 0.12);
+  min-width: 160px;
+  padding: 6px;
+  z-index: 50;
+
+  button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    border: none;
+    background: transparent;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: $brand-navy;
+    cursor: pointer;
+    font-family: inherit;
+
+    img {
+      width: 16px;
+      height: 16px;
+    }
+
+    &:hover {
+      background-color: $brand-bg;
+    }
+  }
+}
+
+/* ---------- Sub navigation (view pills + toolbar) ---------- */
+
+.subnav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 24px;
+  background-color: $brand-card;
+  border-bottom: 1px solid $brand-border;
+  flex: 0 0 auto;
+}
+
+.subnavClosed {
+  .viewNav {
+    display: none;
+  }
+}
+
+.viewNav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex: 1 1 auto;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.noViews {
+  color: $brand-slate;
+  font-size: 14px;
+}
+
+.viewPill {
+  flex: 0 0 auto;
+  border: 1px solid transparent;
+  background: transparent;
+  color: $brand-slate;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, color 0.15s ease;
+
+  &:hover {
+    background-color: $brand-bg;
+    color: $brand-navy;
+  }
+}
+
+.viewPillActive {
+  background-color: $brand-navy;
+  color: #ffffff;
+
+  &:hover {
+    background-color: $brand-navy;
+    color: #ffffff;
+  }
+}
+
+.toolbarActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  padding-left: 12px;
+  border-left: 1px solid $brand-border;
+}
+
+.iconButton {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  img {
+    height: 20px;
+    width: 20px;
+  }
+
+  &:hover {
+    background-color: $brand-bg;
+  }
+}
+
+/* ---------- Content ---------- */
+
+.content {
+  flex: 1 1 auto;
+  padding: 20px 24px;
+  overflow: hidden;
+}
+
+.dashboardCard {
+  height: 100%;
+  background-color: $brand-card;
+  border: 1px solid $brand-border;
+  border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(11, 44, 74, 0.06);
+  overflow: hidden;
+}
+
+.emptyState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: $brand-slate;
+  font-size: 16px;
+}
+
+.spin {
+  transform-origin: center;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- Tableau embed (consumed by Dashboard.js) ---------- */
+
+.tabframe {
+  border: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  background-color: $brand-card;
+  display: block;
+}
+
+.tabbar {
+  width: 100%;
+  background-color: $brand-card;
+  padding: 0 12px;
+}
+
+.tabs {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.tab {
+  display: inline-block;
+  padding: 6px 12px;
+  background-color: $brand-bg;
+  color: $brand-slate;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  border-radius: 8px 8px 0 0;
+  transition: background-color 0.2s;
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+.tab:hover {
+  background-color: #e5e9ef;
+}
+
+.vizWrapper {
+  height: 100%;
+  width: 100%;
+}
+
+.tab.active {
+  background-color: $brand-navy;
+  color: #ffffff;
+}
+
+.loadingSpinnerContainer {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 1);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  top: 0;
+}
+
+.loadingSpinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(11, 44, 74, 0.2);
+  border-top: 4px solid $brand-orange;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  position: fixed;
+}
+
+/* ---------- Responsive ---------- */
+
+@media all and (max-width: 900px) {
+  .menuToggle {
+    display: inline-flex;
+  }
+
+  .profileText {
+    display: none;
+  }
+
+  .subnav {
+    flex-wrap: wrap;
+  }
+
+  .subnavClosed {
+    .toolbarActions {
+      margin-left: auto;
+    }
+  }
+
+  .content {
+    padding: 12px;
+  }
+}

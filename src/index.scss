@@ -1,0 +1,47 @@
+* {
+  font-weight: 500;
+  color: #0B2C4A;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+body {
+  margin: 0;
+  font-family: "Source Sans 3", "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: linear-gradient(160deg, #0B2C4A 0%, #163A5F 45%, #F4F6F8 45%, #F4F6F8 100%);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+h1, h2, h3, .brandText {
+  font-family: "Montserrat", "Source Sans 3", sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+::-webkit-input-placeholder {
+  text-align: left;
+  line-height: normal;
+}
+
+:-moz-placeholder {
+  text-align: left;
+  line-height: normal;
+}
+
+::-moz-placeholder {
+  text-align: left;
+  line-height: normal;
+}
+
+:-ms-input-placeholder {
+  text-align: left;
+  line-height: normal;
+}
+
+::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
+}
