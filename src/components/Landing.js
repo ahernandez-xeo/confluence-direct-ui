@@ -5,14 +5,12 @@ import ValidUserContext from "../authCheck";
 import signoutIcon from "../assets/fa-logout.svg";
 import userIcon from "../assets/fa-user.svg";
 import menuIcon from "../assets/fa-menu.svg";
-import pdfIcon from "../assets/icon-pdf.svg";
-import imageIcon from "../assets/icon-image.svg";
-import refreshIcon from "../assets/icon-refresh.svg";
 
 import brandLogo from "../assets/cd-logo.svg";
 import Dashboard from "./Dashboard";
 
 const VIEW_PILL_LIMIT = 10;
+const WORKBOOK_PILL_LIMIT = 10;
 
 const isMobileDevice = () => /Mobi|Android/i.test(navigator.userAgent);
 
@@ -51,6 +49,7 @@ const Landing = ({ idleCountParam }) => {
   const validUserContext = useContext(ValidUserContext);
   const dashboardRef = useRef(null);
   const viewPickerRef = useRef(null);
+  const workbookPickerRef = useRef(null);
 
   const navEntries = useMemo(
     () => Object.entries(JSON.parse(localStorage.getItem("navigation")) || {}),
@@ -63,8 +62,6 @@ const Landing = ({ idleCountParam }) => {
   const role = JSON.parse(localStorage.getItem("role")) || "";
   const roleLabel = role.includes("Administrator") ? "Administrator" : role;
 
-  // Scope workbooks to the user's folder/client label (group name for non-admins,
-  // "Admin Insights" / first nav client for admins).
   const scopeClient = isAdmin
     ? (navEntries[0] && navEntries[0][1].client) || null
     : group;
@@ -88,13 +85,18 @@ const Landing = ({ idleCountParam }) => {
     const v = buildViews(workbooks[0]);
     return v.length ? v[0].url : "";
   });
-  const [refreshSpin, setRefreshSpin] = useState(false);
+  const [embedURL, setEmbedURL] = useState(() => {
+    const v = buildViews(workbooks[0]);
+    return v.length ? v[0].url : "";
+  });
   const [navOpen, setNavOpen] = useState(!isMobileDevice());
   const [profileOpen, setProfileOpen] = useState(false);
   const [viewMenuOpen, setViewMenuOpen] = useState(false);
+  const [workbookMenuOpen, setWorkbookMenuOpen] = useState(false);
   const [idleCount, setIdleCount] = useState(idleCountParam);
 
   const useViewPicker = views.length > VIEW_PILL_LIMIT;
+  const useWorkbookPicker = workbooks.length > WORKBOOK_PILL_LIMIT;
   const activeView = views[activeIndex] || null;
 
   useEffect(() => {
@@ -105,17 +107,31 @@ const Landing = ({ idleCountParam }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idleCountParam]);
 
-  // Close view picker on outside click or Escape
+  // Close pickers on outside click or Escape
   useEffect(() => {
-    if (!viewMenuOpen) return undefined;
+    if (!viewMenuOpen && !workbookMenuOpen) return undefined;
 
     const onPointerDown = (e) => {
-      if (viewPickerRef.current && !viewPickerRef.current.contains(e.target)) {
+      if (
+        viewMenuOpen &&
+        viewPickerRef.current &&
+        !viewPickerRef.current.contains(e.target)
+      ) {
         setViewMenuOpen(false);
+      }
+      if (
+        workbookMenuOpen &&
+        workbookPickerRef.current &&
+        !workbookPickerRef.current.contains(e.target)
+      ) {
+        setWorkbookMenuOpen(false);
       }
     };
     const onKeyDown = (e) => {
-      if (e.key === "Escape") setViewMenuOpen(false);
+      if (e.key === "Escape") {
+        setViewMenuOpen(false);
+        setWorkbookMenuOpen(false);
+      }
     };
 
     document.addEventListener("mousedown", onPointerDown);
@@ -124,22 +140,30 @@ const Landing = ({ idleCountParam }) => {
       document.removeEventListener("mousedown", onPointerDown);
       document.removeEventListener("keydown", onKeyDown);
     };
-  }, [viewMenuOpen]);
+  }, [viewMenuOpen, workbookMenuOpen]);
 
-  // Keep the currently selected view visible in the scrollable list
   useEffect(() => {
     if (!viewMenuOpen) return;
     const active = viewPickerRef.current?.querySelector('[aria-selected="true"]');
     if (active) active.scrollIntoView({ block: "nearest" });
   }, [viewMenuOpen, activeIndex]);
 
+  useEffect(() => {
+    if (!workbookMenuOpen) return;
+    const active = workbookPickerRef.current?.querySelector('[aria-selected="true"]');
+    if (active) active.scrollIntoView({ block: "nearest" });
+  }, [workbookMenuOpen, selectedWorkbookId]);
+
   const applyWorkbook = (workbook) => {
     const nextViews = buildViews(workbook);
+    const firstUrl = nextViews.length ? nextViews[0].url : "";
     setSelectedWorkbookId(workbook?.id || "");
     setViews(nextViews);
     setActiveIndex(0);
-    setActiveURL(nextViews.length ? nextViews[0].url : "");
+    setActiveURL(firstUrl);
+    setEmbedURL(firstUrl);
     setViewMenuOpen(false);
+    setWorkbookMenuOpen(false);
   };
 
   const handleWorkbookChange = (workbookId) => {
@@ -155,7 +179,6 @@ const Landing = ({ idleCountParam }) => {
     if (isMobileDevice()) setNavOpen(false);
   };
 
-  // Tableau Embedding API v3 custom element inside Dashboard
   const getViz = () => dashboardRef.current?.querySelector("tableau-viz");
 
   const handleExportPDFClick = async () => {
@@ -178,27 +201,12 @@ const Landing = ({ idleCountParam }) => {
     }
   };
 
-  const handleTriggerRefresh = () => {
-    const viz = getViz();
-    if (!viz) return;
-    setRefreshSpin(true);
-    viz
-      .refreshDataAsync()
-      .then(() => setRefreshSpin(false))
-      .catch(() => setRefreshSpin(false));
-  };
-
   const handleBackgroundRefresh = () => {
     const viz = getViz();
     if (viz) viz.refreshDataAsync().catch(() => {});
   };
 
   const handleLogout = () => validUserContext.logoutUser();
-
-  const exportButtons = [
-    { icon: pdfIcon, alt: "Export PDF", onClick: handleExportPDFClick },
-    { icon: imageIcon, alt: "Export Image", onClick: handleExportImageClick },
-  ];
 
   return (
     <div className={classes.app}>
@@ -214,23 +222,64 @@ const Landing = ({ idleCountParam }) => {
           <img className={classes.brandLogo} src={brandLogo} alt="Conference Direct" />
         </div>
 
-        <div className={classes.headerRight}>
-          {workbooks.length > 0 && (
-            <div className={classes.clientSelect}>
-              <select
-                value={selectedWorkbook?.id || ""}
-                onChange={(e) => handleWorkbookChange(e.target.value)}
-                aria-label="Select workbook"
-              >
-                {workbooks.map((wb) => (
-                  <option key={wb.id} value={wb.id}>
-                    {wb.name}
-                  </option>
-                ))}
-              </select>
+        <div className={classes.headerCenter}>
+          {workbooks.length > 0 && !useWorkbookPicker && (
+            <div className={classes.workbookNav} role="tablist" aria-label="Workbooks">
+              {workbooks.map((wb) => (
+                <button
+                  key={wb.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={wb.id === selectedWorkbook?.id}
+                  className={`${classes.workbookPill} ${
+                    wb.id === selectedWorkbook?.id ? classes.workbookPillActive : ""
+                  }`}
+                  onClick={() => handleWorkbookChange(wb.id)}
+                  title={wb.name}
+                >
+                  {wb.name}
+                </button>
+              ))}
             </div>
           )}
 
+          {workbooks.length > 0 && useWorkbookPicker && selectedWorkbook && (
+            <div className={classes.workbookPicker} ref={workbookPickerRef}>
+              <button
+                type="button"
+                className={`${classes.workbookPill} ${classes.workbookPillActive} ${classes.workbookPickerButton}`}
+                onClick={() => setWorkbookMenuOpen((o) => !o)}
+                aria-expanded={workbookMenuOpen}
+                aria-haspopup="listbox"
+                title={selectedWorkbook.name}
+              >
+                <span className={classes.workbookPickerLabel}>{selectedWorkbook.name}</span>
+                <span className={classes.chevron}>▾</span>
+              </button>
+              {workbookMenuOpen && (
+                <div className={classes.pickerMenu} role="listbox">
+                  {workbooks.map((wb) => (
+                    <button
+                      key={wb.id}
+                      type="button"
+                      role="option"
+                      aria-selected={wb.id === selectedWorkbook?.id}
+                      className={`${classes.pickerItem} ${
+                        wb.id === selectedWorkbook?.id ? classes.pickerItemActive : ""
+                      }`}
+                      onClick={() => handleWorkbookChange(wb.id)}
+                      title={wb.name}
+                    >
+                      {wb.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className={classes.headerRight}>
           <div className={classes.profile}>
             <button
               className={classes.profileButton}
@@ -268,8 +317,9 @@ const Landing = ({ idleCountParam }) => {
             views.map((view, index) => (
               <button
                 key={view.id || index}
-                className={`${classes.viewPill} ${
-                  activeIndex === index ? classes.viewPillActive : ""
+                type="button"
+                className={`${classes.viewTab} ${
+                  activeIndex === index ? classes.viewTabActive : ""
                 }`}
                 onClick={() => handleViewClick(index)}
                 title={view.label}
@@ -282,7 +332,7 @@ const Landing = ({ idleCountParam }) => {
             <div className={classes.viewPicker} ref={viewPickerRef}>
               <button
                 type="button"
-                className={classes.viewPickerButton}
+                className={`${classes.viewTab} ${classes.viewTabActive} ${classes.viewPickerButton}`}
                 onClick={() => setViewMenuOpen((o) => !o)}
                 aria-expanded={viewMenuOpen}
                 aria-haspopup="listbox"
@@ -293,15 +343,15 @@ const Landing = ({ idleCountParam }) => {
               </button>
 
               {viewMenuOpen && (
-                <div className={classes.viewPickerMenu} role="listbox">
+                <div className={classes.pickerMenu} role="listbox">
                   {views.map((view, index) => (
                     <button
                       key={view.id || index}
                       type="button"
                       role="option"
                       aria-selected={index === activeIndex}
-                      className={`${classes.viewPickerItem} ${
-                        index === activeIndex ? classes.viewPickerItemActive : ""
+                      className={`${classes.pickerItem} ${
+                        index === activeIndex ? classes.pickerItemActive : ""
                       }`}
                       onClick={() => handleViewClick(index)}
                       title={view.label}
@@ -316,36 +366,32 @@ const Landing = ({ idleCountParam }) => {
         </div>
 
         <div className={classes.toolbarActions}>
-          {exportButtons.map((btn) => (
-            <button
-              key={btn.alt}
-              className={classes.iconButton}
-              onClick={btn.onClick}
-              title={btn.alt}
-              aria-label={btn.alt}
-            >
-              <img src={btn.icon} alt="" />
-            </button>
-          ))}
+          <span className={classes.downloadLabel}>Download:</span>
           <button
-            className={classes.iconButton}
-            onClick={handleTriggerRefresh}
-            title="Refresh"
-            aria-label="Refresh"
+            type="button"
+            className={classes.downloadLink}
+            onClick={handleExportPDFClick}
           >
-            <img
-              className={refreshSpin ? classes.spin : ""}
-              src={refreshIcon}
-              alt=""
-            />
+            PDF
+          </button>
+          <button
+            type="button"
+            className={classes.downloadLink}
+            onClick={handleExportImageClick}
+          >
+            Image
           </button>
         </div>
       </nav>
 
       <main className={classes.content}>
         <div className={classes.dashboardCard} ref={dashboardRef}>
-          {activeURL ? (
-            <Dashboard dashboardLinkProp={activeURL} displayTabs={false} idleCount={idleCount} />
+          {embedURL ? (
+            <Dashboard
+              embedUrl={embedURL}
+              activeSheetUrl={activeURL}
+              displayTabs={false}
+            />
           ) : (
             <div className={classes.emptyState}>Select a dashboard to get started.</div>
           )}

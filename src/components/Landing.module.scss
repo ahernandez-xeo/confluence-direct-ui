@@ -13,20 +13,22 @@
 }
 
 .header {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
-  height: 64px;
-  padding: 0 24px;
+  min-height: 64px;
+  padding: 8px 24px;
   background-color: $brand-card;
   border-bottom: 1px solid $brand-border;
   flex: 0 0 auto;
+  gap: 16px;
 }
 
 .headerLeft {
   display: flex;
   align-items: center;
   gap: 14px;
+  justify-self: start;
 }
 
 .brandLogo {
@@ -52,45 +54,79 @@
   }
 }
 
+.headerCenter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  max-width: min(720px, 55vw);
+}
+
 .headerRight {
   display: flex;
   align-items: center;
   gap: 16px;
+  justify-self: end;
 }
 
-.clientSelect {
+/* Workbook pills (header center) — design: light-blue active pill */
+.workbookNav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  max-width: 100%;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.workbookPill {
+  flex: 0 0 auto;
+  border: none;
+  background: transparent;
+  color: $brand-navy;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 18px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, color 0.15s ease;
+
+  &:hover {
+    background-color: rgba($brand-pill, 0.55);
+  }
+}
+
+.workbookPillActive {
+  background-color: $brand-pill;
+  color: $brand-navy;
+
+  &:hover {
+    background-color: $brand-pill;
+  }
+}
+
+.workbookPicker {
   position: relative;
-  max-width: min(360px, 45vw);
+  max-width: min(360px, 55vw);
+}
 
-  select {
-    appearance: none;
-    -webkit-appearance: none;
-    background-color: $brand-bg;
-    color: $brand-navy;
-    border: 1px solid $brand-border;
-    border-radius: 999px;
-    padding: 8px 34px 8px 16px;
-    font-size: 14px;
-    font-weight: 600;
-    font-family: inherit;
-    cursor: pointer;
-    outline: none;
-    width: 100%;
-    max-width: 100%;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
+.workbookPickerButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+}
 
-  &::after {
-    content: "▾";
-    position: absolute;
-    right: 14px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: $brand-slate;
-    font-size: 12px;
-    pointer-events: none;
-  }
+.workbookPickerLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .profile {
@@ -192,20 +228,21 @@
   }
 }
 
-/* ---------- Sub navigation (view pills + toolbar) ---------- */
+/* ---------- Sub navigation (underline view tabs + toolbar) ---------- */
 
 .subnav {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 10px 24px;
+  padding: 0 24px;
   background-color: $brand-card;
   border-bottom: 1px solid $brand-border;
   flex: 0 0 auto;
   position: relative;
   z-index: 30;
   overflow: visible;
+  min-height: 48px;
 }
 
 .subnavClosed {
@@ -216,11 +253,12 @@
 
 .viewNav {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  align-items: stretch;
+  gap: 4px;
   overflow-x: auto;
   scrollbar-width: none;
   flex: 1 1 auto;
+  min-height: 48px;
 
   &::-webkit-scrollbar {
     display: none;
@@ -230,49 +268,54 @@
 /* Allow the view-picker dropdown to escape horizontal scroll clipping */
 .viewNavPicker {
   overflow: visible;
+  align-items: center;
 }
 
 .noViews {
   color: $brand-slate;
   font-size: 14px;
+  align-self: center;
 }
 
-.viewPill {
+/* View tabs — design: active = navy underline, no pill fill */
+.viewTab {
   flex: 0 0 auto;
-  border: 1px solid transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
   background: transparent;
-  color: $brand-slate;
+  color: $brand-navy;
   font-family: inherit;
   font-size: 14px;
   font-weight: 600;
-  padding: 8px 16px;
-  border-radius: 999px;
+  padding: 14px 12px 11px;
+  border-radius: 0;
   cursor: pointer;
   white-space: nowrap;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition: color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
 
   &:hover {
-    background-color: $brand-bg;
-    color: $brand-navy;
+    opacity: 0.75;
   }
 }
 
-.viewPillActive {
-  background-color: $brand-navy;
-  color: #ffffff;
+.viewTabActive {
+  border-bottom-color: $brand-navy;
+  color: $brand-navy;
+  opacity: 1;
 
   &:hover {
-    background-color: $brand-navy;
-    color: #ffffff;
+    opacity: 1;
   }
 }
 
-/* Compact view picker (when views.length > VIEW_PILL_LIMIT) */
 .viewPicker {
   position: relative;
   flex: 0 1 auto;
   min-width: 0;
   max-width: min(420px, 70vw);
+  align-self: stretch;
+  display: flex;
+  align-items: stretch;
 }
 
 .viewPickerButton {
@@ -280,25 +323,10 @@
   align-items: center;
   gap: 8px;
   max-width: 100%;
-  border: 1px solid $brand-border;
-  background-color: $brand-bg;
-  color: $brand-navy;
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  padding: 8px 14px;
-  border-radius: 999px;
-  cursor: pointer;
-  outline: none;
 
   .chevron {
     color: $brand-slate;
     flex: 0 0 auto;
-  }
-
-  &:hover {
-    background-color: #e8ecf0;
-    border-color: rgba($brand-navy, 0.25);
   }
 }
 
@@ -309,7 +337,8 @@
   white-space: nowrap;
 }
 
-.viewPickerMenu {
+/* Shared overlay menu for workbook / view pickers */
+.pickerMenu {
   position: absolute;
   left: 0;
   top: calc(100% + 8px);
@@ -327,7 +356,12 @@
   gap: 2px;
 }
 
-.viewPickerItem {
+.workbookPicker .pickerMenu {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.pickerItem {
   border: none;
   background: transparent;
   text-align: left;
@@ -348,46 +382,45 @@
   }
 }
 
-.viewPickerItemActive {
-  background-color: rgba($brand-navy, 0.1);
+.pickerItemActive {
+  background-color: $brand-pill;
   font-weight: 600;
 
   &:hover {
-    background-color: rgba($brand-navy, 0.14);
+    background-color: $brand-pill;
   }
 }
 
 .toolbarActions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 10px;
   flex: 0 0 auto;
-  padding-left: 12px;
-  border-left: 1px solid $brand-border;
+  padding-left: 16px;
 }
 
-.iconButton {
+.downloadLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: $brand-navy;
+  white-space: nowrap;
+}
+
+.downloadLink {
   border: none;
   background: transparent;
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 8px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  padding: 0;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
   color: $brand-navy;
-
-  img {
-    height: 18px;
-    width: 18px;
-  }
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
 
   &:hover {
-    background-color: rgba($brand-navy, 0.08);
-  }
-
-  &:active {
-    background-color: rgba($brand-navy, 0.14);
+    text-decoration: underline;
+    color: $brand-orange;
   }
 }
 
@@ -415,11 +448,6 @@
   height: 100%;
   color: $brand-slate;
   font-size: 16px;
-}
-
-.spin {
-  transform-origin: center;
-  animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
@@ -508,6 +536,15 @@
 @media all and (max-width: 900px) {
   .menuToggle {
     display: inline-flex;
+  }
+
+  .header {
+    grid-template-columns: auto 1fr auto;
+  }
+
+  .headerCenter {
+    max-width: none;
+    justify-content: flex-start;
   }
 
   .profileText {

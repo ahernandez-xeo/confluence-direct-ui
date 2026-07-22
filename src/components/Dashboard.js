@@ -1,177 +1,195 @@
 import classes from "./Landing.module.scss";
-import {useRef, useEffect, useState, useContext} from "react";
+import { useRef, useEffect, useState, useContext, useMemo } from "react";
 import ValidUserContext from "../authCheck";
-import dividerIcon from "../assets/akar-icons_divider.svg";
-import classesSpin from "../App.module.scss";
 
+const isMobileDevice = () => /Mobi|Android/i.test(navigator.userAgent);
 
+const workbookKeyFromViewUrl = (viewUrl) => {
+  if (!viewUrl) return "";
+  return viewUrl.split("/sheets/")[0] || viewUrl.split("/")[0] || viewUrl;
+};
 
-const Dashboard = ({dashboardLinkProp, displayTabs}) => {
-    const [activeTab, setActiveTab] = useState(0);
-    const [loaded, setLoaded] = useState(false);
+const buildVizUrl = (viewPath) => {
+  const base =
+    JSON.parse(localStorage.getItem("dashboard-url")) ||
+    "https://10ay.online.tableau.com/#/site/conferencedirect/views/";
+  // Keep workbook + sheet in the initial src; sheet switches use activateSheetAsync
+  return (
+    base +
+    viewPath.replace("/sheets", "") +
+    "?:showVizHome=no&:embed=true&:toolbar=no&:tabs=n"
+  );
+};
 
-    const [dashboardLink, setDashboardLink] = useState(dashboardLinkProp)
-    const [tabArray, setTabArray] = useState([
-    ]);
-    const [tabLinksArray, setTabLinksArray] = useState([
-    ]);
-    const elementRef = useRef();
-    const linkRef = useRef(dashboardLink);
+const findSheetForViewUrl = (sheets, viewUrl) => {
+  if (!sheets?.length || !viewUrl) return null;
 
-    const validUserContext = useContext(ValidUserContext);
-    console.log("prop: "+dashboardLink);
+  const sheetSeg = viewUrl.split("/sheets/")[1] || viewUrl.split("/").pop() || "";
+  const compactSeg = sheetSeg.replace(/[\s_-]+/g, "").toLowerCase();
+  const pathWithoutSheets = viewUrl.replace("/sheets/", "/");
 
-    const isMobileDevice = () => {
-      return /Mobi|Android/i.test(navigator.userAgent);
-    };
+  return (
+    sheets.find((s) => s.url && (s.url.includes(viewUrl) || s.url.includes(pathWithoutSheets))) ||
+    sheets.find((s) => s.name === sheetSeg) ||
+    sheets.find(
+      (s) => (s.name || "").replace(/[\s_-]+/g, "").toLowerCase() === compactSeg
+    ) ||
+    null
+  );
+};
 
-    useEffect(() => {
-      setDashboardLink(dashboardLinkProp);
-      linkRef.current = dashboardLinkProp;
-      console.log("Reading localstorage")
-      localStorage.setItem("tableauActive", false);
-      const items = JSON.parse(localStorage.getItem("tabs"));
-      if (items) {
-        setTabArray(["Loading"]);
-      }
+const activateSheetByViewUrl = async (viz, viewUrl) => {
+  if (!viz?.workbook || !viewUrl) return;
+  const sheets = viz.workbook.publishedSheetsInfo || [];
+  const sheet = findSheetForViewUrl(sheets, viewUrl);
+  if (!sheet) {
+    console.warn("Sheet not found for view:", viewUrl, sheets.map((s) => s.name));
+    return;
+  }
+  try {
+    await viz.workbook.activateSheetAsync(sheet.name);
+  } catch (err) {
+    console.error("activateSheetAsync failed", err);
+  }
+};
 
-      const timeoutId = setTimeout(() => {
-        var tableauActive = JSON.parse(localStorage.getItem("tableauActive"));
-        if (tableauActive) {
-          console.log("Tableau session active")
-        } else {
-          console.log("Tableau session inactive")
-          validUserContext.logoutUser()
-        }
+const Dashboard = ({ embedUrl, activeSheetUrl, displayTabs = false }) => {
+  const elementRef = useRef(null);
+  const readyRef = useRef(false);
+  const activeSheetRef = useRef(activeSheetUrl);
+  const workbookKeyRef = useRef(workbookKeyFromViewUrl(embedUrl));
+  const validUserContext = useContext(ValidUserContext);
 
-      }, 30000);
-  
-      // Cleanup function to clear the timeout if the component unmounts
-      return () => clearTimeout(timeoutId);
-    }, [dashboardLinkProp]);
-
-    useEffect(() => {
-        var viz = elementRef.current;
-        var link = dashboardLink
-        console.log(`Listener added`);
-        viz.addEventListener("firstinteractive", async (event) => {
-            console.log(`Dashboard Loaded`);
-            console.log("effect: "+linkRef.current)
-            var sheets = viz.workbook.publishedSheetsInfo;
-            var newArray = sheets.map(sheet => {
-                if (isMobileDevice()) {
-                  return sheet.index +1
-                }
-                return sheet.name
-            }) 
-
-            var newLinksArray = sheets.map(sheet => {
-              return sheet.name
-          }) 
-
-            localStorage.setItem("tabs", JSON.stringify(newArray));
-            localStorage.setItem("tableauActive", true);
-            var activeTabIndex = sheets.findIndex(sheet => sheet.url.includes(linkRef.current.replace("sheets/", "")))
-
-            setTabArray(newArray);
-            setTabLinksArray(newLinksArray);
-
-            setLoaded(true);
-            setActiveTab(activeTabIndex);
-            viz.refreshDataAsync()
-        });
-        // viz.addEventListener("tabswitched", async (event) => {
-        //     setActiveTab(tabArray.indexOf(event.detail.newSheetName))
-        // });
-        /*
-
-        */
-      }, []);
-
-
-    const handleTabClick = (tabIndex) => {
-        validUserContext.localAuthCheck(false);
-        elementRef.current.workbook.activateSheetAsync(tabLinksArray[tabIndex])
-        setActiveTab(tabIndex);
-    };
-
-    const renderTabs = () => {
-
-      const colors = ['#b1040c', '#e7272e','#ef822b','#fbc917','#a5cd3b','#007632','#3030ef','#0095db']
-  
-      return tabArray.map((tab, index) => {
-        if (activeTab === index) {
-            return (
-                <span
-                  key={index}
-                  className={`${classes.tab}  ${classes.active}`}
-                  style={{backgroundColor: '$line-theme'}}
-                  onClick={() => handleTabClick(index)}
-                >
-                  {tab}
-                </span>
-            )
-        } else {
-            return (
-                <span
-                  key={index}
-                  className={`${classes.tab}`}
-                  style={{backgroundColor: '$line-theme'}}
-                  onClick={() => handleTabClick(index)}
-                >
-                  {tab}
-                </span>
-            )
-        }
-      });
-    };
-
-    const handleTableauLoad = () => {
-      validUserContext.localAuthCheck(false);
-    };
-    
-
-    var jwtToken = JSON.parse(localStorage.getItem("tableau-login-data"));
-    localStorage.setItem("tableau-login-data", JSON.stringify("redeemed"));
-    var dashboardURL = JSON.parse(localStorage.getItem("dashboard-url"));
-
-    var inputProps = {
-    };
-    
-    if (jwtToken != "redeemed") {
-      inputProps.token = jwtToken;
+  const [src, setSrc] = useState(() => (embedUrl ? buildVizUrl(embedUrl) : ""));
+  const [token] = useState(() => {
+    const jwtToken = JSON.parse(localStorage.getItem("tableau-login-data"));
+    if (jwtToken && jwtToken !== "redeemed") {
+      localStorage.setItem("tableau-login-data", JSON.stringify("redeemed"));
+      return jwtToken;
     }
-    // dashboardURL = dashboardURL + dashboardLink.replace('/sheets','') + '?:showVizHome=no&:embed=true&:toolbar=no&:tabs=n&refresh=yes'
-    dashboardURL = "https://10ay.online.tableau.com/#/site/conferencedirect/views/" + dashboardLink.replace('/sheets','') + '?:showVizHome=no&:embed=true&:toolbar=no&:tabs=n&refresh=yes'
+    return null;
+  });
 
-    console.log("Loading dashboard.");
+  const [tabArray, setTabArray] = useState([]);
+  const [tabLinksArray, setTabLinksArray] = useState([]);
+  const [activeTab, setActiveTab] = useState(0);
 
-    return (
-        <div className={`${classes.vizWrapper}`}>
-            {displayTabs? 
-              (
-                <div className={`${classes.tabbar}`}>
-                  <span className={`${classes.tabs}`}>{renderTabs()}</span>
-                </div>
-              ):(
-                <div></div>
-              )
-            }
-            <tableau-viz class={`${classes.tabframe}`}  onLoad={() => handleTableauLoad()} ref={elementRef} id="tableauViz" refresh="yes" width="100%" height="100%" hide-tabs='true' toolbar='hidden'
-                    src={dashboardURL} {...inputProps}
-                   >
-                  <custom-parameter name=":refresh" value="yes"></custom-parameter>
-            </tableau-viz>
-            {true == false  ? 
-            ( <div className={classes.loadingSpinnerContainer}>
-                <div className={classes.loadingSpinner}></div>
-              </div>
-            ):(
-              <div></div>
-            )
-          }
-        </div>
-    );
+  activeSheetRef.current = activeSheetUrl;
+
+  // Workbook change → reload viz src. View change within workbook → activateSheetAsync.
+  useEffect(() => {
+    if (!embedUrl) return;
+    const nextKey = workbookKeyFromViewUrl(embedUrl);
+    if (nextKey !== workbookKeyRef.current) {
+      workbookKeyRef.current = nextKey;
+      readyRef.current = false;
+      localStorage.setItem("tableauActive", false);
+      setSrc(buildVizUrl(embedUrl));
+    }
+  }, [embedUrl]);
+
+  useEffect(() => {
+    const viz = elementRef.current;
+    if (!viz) return undefined;
+
+    const onFirstInteractive = async () => {
+      readyRef.current = true;
+      localStorage.setItem("tableauActive", true);
+
+      const sheets = viz.workbook?.publishedSheetsInfo || [];
+      const names = sheets.map((sheet) =>
+        isMobileDevice() ? sheet.index + 1 : sheet.name
+      );
+      setTabArray(names);
+      setTabLinksArray(sheets.map((sheet) => sheet.name));
+
+      const targetUrl = activeSheetRef.current || embedUrl;
+      const idx = sheets.findIndex((sheet) => {
+        const match = findSheetForViewUrl([sheet], targetUrl);
+        return !!match;
+      });
+      if (idx >= 0) setActiveTab(idx);
+
+      await activateSheetByViewUrl(viz, targetUrl);
+    };
+
+    viz.addEventListener("firstinteractive", onFirstInteractive);
+
+    const timeoutId = setTimeout(() => {
+      const tableauActive = JSON.parse(localStorage.getItem("tableauActive"));
+      if (!tableauActive) {
+        validUserContext.logoutUser();
+      }
+    }, 30000);
+
+    return () => {
+      viz.removeEventListener("firstinteractive", onFirstInteractive);
+      clearTimeout(timeoutId);
+    };
+    // Mount once per Dashboard instance; workbook reloads happen via src change on same element
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Same-workbook view navigation — preserve filters via activateSheetAsync
+  useEffect(() => {
+    if (!readyRef.current || !activeSheetUrl) return;
+    const viz = elementRef.current;
+    if (!viz?.workbook) return;
+
+    activateSheetByViewUrl(viz, activeSheetUrl).then(() => {
+      const sheets = viz.workbook.publishedSheetsInfo || [];
+      const idx = sheets.findIndex((sheet) => !!findSheetForViewUrl([sheet], activeSheetUrl));
+      if (idx >= 0) setActiveTab(idx);
+    });
+  }, [activeSheetUrl]);
+
+  const handleTabClick = (tabIndex) => {
+    validUserContext.localAuthCheck(false);
+    const name = tabLinksArray[tabIndex];
+    if (elementRef.current?.workbook && name) {
+      elementRef.current.workbook.activateSheetAsync(name);
+    }
+    setActiveTab(tabIndex);
   };
-  
-  export default Dashboard;
+
+  const inputProps = useMemo(() => (token ? { token } : {}), [token]);
+
+  if (!src) {
+    return <div className={classes.vizWrapper} />;
+  }
+
+  return (
+    <div className={classes.vizWrapper}>
+      {displayTabs ? (
+        <div className={classes.tabbar}>
+          <span className={classes.tabs}>
+            {tabArray.map((tab, index) => (
+              <span
+                key={index}
+                className={`${classes.tab} ${activeTab === index ? classes.active : ""}`}
+                onClick={() => handleTabClick(index)}
+              >
+                {tab}
+              </span>
+            ))}
+          </span>
+        </div>
+      ) : (
+        <div />
+      )}
+      <tableau-viz
+        class={classes.tabframe}
+        ref={elementRef}
+        id="tableauViz"
+        width="100%"
+        height="100%"
+        hide-tabs="true"
+        toolbar="hidden"
+        src={src}
+        {...inputProps}
+      />
+    </div>
+  );
+};
+
+export default Dashboard;
